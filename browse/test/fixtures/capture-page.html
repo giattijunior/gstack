@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>capture-fixture</title></head>
+<body>
+  <h1>capture fixture</h1>
+  <pre id="out">pending</pre>
+  <script>
+    // Make a JSON xhr + a JSON fetch + a non-JSON image — verify capture
+    // picks up the JSON ones and ignores the image.
+    (async () => {
+      const out = document.getElementById('out');
+      try {
+        const xhr = await new Promise((resolve, reject) => {
+          const r = new XMLHttpRequest();
+          r.open('GET', '/echo?kind=xhr');
+          r.onload = () => resolve(r.responseText);
+          r.onerror = reject;
+          r.send();
+        });
+        const fetchResp = await fetch('/echo?kind=fetch').then(r => r.json());
+        // Force an image load (resourceType=image, content-type=image/png) — must NOT be captured
+        const img = new Image();
+        img.src = '/favicon.ico';
+        out.textContent = JSON.stringify({ xhr: xhr.slice(0, 80), fetch: fetchResp });
+      } catch (e) {
+        out.textContent = 'error: ' + e.message;
+      }
+    })();
+  </script>
+</body>
+</html>

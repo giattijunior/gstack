@@ -66,6 +66,25 @@ describe('validateNavigationUrl', () => {
     await expect(validateNavigationUrl('http://[fd00::]/')).rejects.toThrow(/cloud metadata/i);
   });
 
+  it('blocks arbitrary 169.254/16 link-local IP (not just 169.254.169.254)', async () => {
+    // The previous version only blocked 169.254.169.254. The 169.254/16 range
+    // (RFC 3927) is reserved for link-local — every address in it is suspect.
+    // Per agentbrowse v0.3.3, the whole /16 should be blocked.
+    await expect(validateNavigationUrl('http://169.254.1.1/')).rejects.toThrow(/cloud metadata/i);
+  });
+
+  it('blocks IPv6 link-local fe80::/10 (RFC 4291)', async () => {
+    await expect(validateNavigationUrl('http://[fe80::1]/')).rejects.toThrow(/cloud metadata/i);
+  });
+
+  it('blocks AWS IMDS IPv6 fd00:ec2::254', async () => {
+    await expect(validateNavigationUrl('http://[fd00:ec2::254]/latest/meta-data/')).rejects.toThrow(/cloud metadata/i);
+  });
+
+  it('blocks AWS IMDS DNS hostname', async () => {
+    await expect(validateNavigationUrl('http://metadata.aws.internal/latest/meta-data/')).rejects.toThrow(/cloud metadata/i);
+  });
+
   it('throws on malformed URLs', async () => {
     await expect(validateNavigationUrl('not-a-url')).rejects.toThrow(/Invalid URL/i);
   });
